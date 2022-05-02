@@ -265,7 +265,7 @@ protected:
 	
 	int size_x_ = 1000;
 	int size_y_ = 1000;
-	DataType cell_length_ = 0.1;
+	DataType cell_length_ = 0.05;
 };
 
 }
