@@ -4,6 +4,8 @@
 #include "grid_cell.h"
 #include <Eigen/Dense>
 
+#include <iostream>
+
 namespace grid
 {
 
@@ -14,8 +16,8 @@ template<typename T, template<typename, typename = void>class GridCellType,
 class GridMapBase
 {
 public:
-	using DataType = typename T;
-	using CellType = typename GridCellType<T>;
+	using DataType =  T;
+	using CellType =  GridCellType<T>;
 
 	GridMapBase()
 	{
@@ -64,35 +66,42 @@ public:
 		return Eigen::Vector2i( static_cast<int>( size_x_ * 0.5 ), static_cast<int>( size_y_ * 0.5 ) );
 	}
 
-	const CellType& getCell( const int x, const int y ) const 
+	CellType& getCell( const int x, const int y ) 
 	{
 		return map_array_[ y * size_x_ + x ];
 	}
 
-	const CellType& getCell( const int index ) const	
+	CellType& getCell( const int index ) 	
 	{
 		return map_array_[ index ];
 	}
 
 	const Eigen::Matrix<DataType, 2, 1> observedPointWorld2Map( const Eigen::Matrix<DataType, 2, 1> &point_in_world ) const
 	{
-		return point_in_world * getScale() + getMapCenter().cast<DataType>();
+		//return point_in_world * getScale() + getMapCenter().cast<DataType>();
+		Eigen::Vector2i map_center = getMapCenter();
+		return point_in_world * getScale() + map_center.cast<DataType>();
 	}
 
 	const Eigen::Matrix<DataType, 2, 1> observedPointMap2World( const Eigen::Matrix<DataType, 2, 1> &point_in_map ) const
 	{
-		return ( point_in_map - getMapCenter().cast<DataType>() ) * getScale().cast<DataType>();
+		Eigen::Vector2i map_center = getMapCenter();
+		return ( point_in_map - map_center.cast<DataType>() ) * cell_length_;
 	}
 
 	const Eigen::Matrix<DataType, 3, 1> robotPoseWorld2Map( const Eigen::Matrix<DataType, 3, 1> &pose_in_world ) const
 	{
-		Eigen::Matrix<DataType, 2, 1> tmp( pose_in_world.head<2>() * getScale() + getMapCenter().cast<DataType>() );
+		Eigen::Vector2i map_center = getMapCenter();
+		Eigen::Matrix<DataType, 2, 1> pose_in_world_head( pose_in_world[0], pose_in_world[1] );
+		Eigen::Matrix<DataType, 2, 1> tmp( pose_in_world_head * getScale() + map_center.cast<DataType>() );
 		return Eigen::Matrix<DataType, 3, 1>( tmp[0], tmp[1], pose_in_world[2] );
 	}
 	
 	const Eigen::Matrix<DataType, 3, 1> robotPoseMap2World( const Eigen::Matrix<DataType, 3, 1> &pose_in_map ) const
 	{
-		Eigen::Matrix<DataType, 2, 1> tmp( pose_in_map.head() - getMapCenter().cast<DataType>() ) * getScale();
+		Eigen::Vector2i map_center = getMapCenter();
+		Eigen::Matrix<DataType, 2, 1> pose_in_map_head( pose_in_map[0], pose_in_map[1] );
+		Eigen::Matrix<DataType, 2, 1> tmp( ( pose_in_map_head - map_center.cast<DataType>() ) * cell_length_ );
 		return Eigen::Matrix<DataType, 3, 1>( tmp[0], tmp[1], pose_in_map[2] );
 	}
 	
@@ -182,42 +191,42 @@ public:
 		return cell_operate_.getLogOddsPfree();
 	}
 
-	bool isCellOccupied( const int x, const int y ) const
+	bool isCellOccupied( const int x, const int y )
 	{
 		return getCell( x, y ).isOccupied();
 	}
 
-	bool isCellOccupied( const int index ) const
+	bool isCellOccupied( const int index )
         {
                 return getCell( index ).isOccupied();
         }
 
-	bool isCellFree( const int x, const int y ) const
+	bool isCellFree( const int x, const int y )
 	{
 		return getCell( x, y ).isFree();
 	}
 	
-	bool isCellFree( const int index ) const
+	bool isCellFree( const int index )
         {
                 return getCell( index ).isFree();
         }
 
-	bool isCellUnknow( const int x, const int y ) const
+	bool isCellUnknow( const int x, const int y )
 	{
 		return getCell( x, y ).isUnknow();
 	}
 
-	bool isCellUnknow( const int index ) const
+	bool isCellUnknow( const int index )
         {
                 return getCell( index ).isUnknow();
         }
 
-	const DataType getCellLogOdds( const int x, const int y ) const
+	const DataType getCellLogOdds( const int x, const int y )
 	{
 		return getCell( x, y ).log_odds_value_;
 	}
 
-	const DataType getCellLogOdds( const int index ) const
+	const DataType getCellLogOdds( const int index ) 
         {
                 return getCell( index ).log_odds_value_;
         }
@@ -256,7 +265,7 @@ protected:
 	
 	int size_x_ = 1000;
 	int size_y_ = 1000;
-	DataType cell_length_ = 10;
+	DataType cell_length_ = 0.1;
 };
 
 }

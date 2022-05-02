@@ -30,7 +30,7 @@ template<typename DataType,
 class DataContainer
 {
 public:
-	using type = typename DataType;
+	using type = DataType;
 	using value_type = typename DataType::value_type;
 
 	using ConstSharedPtr = const std::shared_ptr<DataType>;

@@ -17,7 +17,7 @@ class OccupiedGridMap : public GridMapBaseType<T>
 public:
 	using ConstSharedPtr = const std::shared_ptr<OccupiedGridMap<T>>;
 	using SharedPtr = std::shared_ptr<OccupiedGridMap<T>>;
-	using DataType = typename T;
+	using DataType = T;
 	
 	OccupiedGridMap()
 	{
@@ -39,7 +39,8 @@ public:
 		Eigen::Matrix<DataType, 2, 2> rotate;
 		rotate << ::cos( robot_pose_in_world[2] ), -::sin( robot_pose_in_world[2] ),
 			  ::sin( robot_pose_in_world[2] ),  ::cos( robot_pose_in_world[2] );
-		return rotate * point_in_laser + robot_pose_in_world.head<2>();
+		Eigen::Matrix<DataType, 2, 1> trans( robot_pose_in_world[0], robot_pose_in_world[1] );
+		return rotate * point_in_laser + trans;
 	}
 
 	const Eigen::Matrix<DataType, 2, 1> observedPointWorld2Laser( const Eigen::Matrix<DataType, 2, 1> &point_in_world, const Eigen::Matrix<DataType, 3, 1> &robot_pose_in_world ) const
@@ -47,10 +48,11 @@ public:
 		Eigen::Matrix<DataType, 2, 2> rotate;
                 rotate << ::cos( robot_pose_in_world[2] ), -::sin( robot_pose_in_world[2] ),
                           ::sin( robot_pose_in_world[2] ),  ::cos( robot_pose_in_world[2] );
-		return rotate.inverse() * point_in_world - robot_pose_in_world.head<2>();
+		Eigen::Matrix<DataType, 2, 1> trans( robot_pose_in_world[0], robot_pose_in_world[1] );
+		return rotate.inverse() * point_in_world - trans;
 	}
 
-	template<typename =  std::enable_if<std::is_same<DataType, sensor::ScanContainer::value_type>::value>::type>
+	template<typename = typename std::enable_if<std::is_same<DataType, sensor::ScanContainer::value_type>::value>::type>
 	void updateMapByScan( const sensor::ScanContainer &scan, const Eigen::Matrix<DataType, 3, 1> &robot_pose_in_world )
 	{
 		// 1. Transform robot Pose In world Coordinate to Map Coordinat
@@ -59,19 +61,23 @@ public:
         	// std::cout<<robotPoseInMap<<std::endl;
 	
 		// 2. Get the start point of the laser data in Map Coordinate
-        	Eigen::Vector2i begin_point_in_map_i( robot_pose_in_map.head<2>().cast<int>() );
+        	Eigen::Vector2i begin_point_in_map_i( static_cast<int>( robot_pose_in_map[0] ), static_cast<int>( robot_pose_in_map[1] ) );
 		
-		size_t numberOfBeams = points.getSize();
+		size_t numberOfBeams = scan.getSize();
         	//std::cout<<"Number Of Beams: "<<numberOfBeams<<std::endl;
 		for( size_t i = 0; i < numberOfBeams; i ++ ){
+			std::cout<<"----------------------------"<<std::endl;
 			// 3. Get the End point of Every Laser Beam in Laser Coordinate
-                	Eigen::Matrix<DataType, 2, 1> end_point_in_laser = points.getIndexData( i ) ;
+                	Eigen::Matrix<DataType, 2, 1> end_point_in_laser = scan.getIndexData( i ) ;
+			std::cout<<"end point in laser: "<<i<<std::endl<<end_point_in_laser<<std::endl;
 		
 			// 4. Transform the End Point from Laser Coordinate to World Coordinate
                 	Eigen::Matrix<DataType, 2, 1> end_point_in_world( this->observedPointLaser2World( end_point_in_laser, robot_pose_in_world ) );
+			std::cout<<"end point in world: "<<i<<std::endl<<end_point_in_world<<std::endl;		
 
 			// 5. Transform the End Point from World Coordinate to Map Coordinate
                 	Eigen::Matrix<DataType, 2, 1> end_point_in_map( this->observedPointWorld2Map( end_point_in_world ) );
+			std::cout<<"end point in map: "<<i<<std::endl<<end_point_in_map<<std::endl;
 
 			// 6. Convert float to interger
 			Eigen::Vector2i end_point_in_map_i( static_cast<int>( ::round( end_point_in_map[0] ) ), static_cast<int>( ::round( end_point_in_map[1] ) ) );

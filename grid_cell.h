@@ -63,8 +63,8 @@ template<typename T, typename = typename std::enable_if<is_double_or_float<T>::v
 class GridCellOperations
 {
 public:
-	using DataType = typename T;
-	using GridCellType = typename GridCell<T>;	
+	using DataType = T;
+	using GridCellType = GridCell<T>;	
 
 	GridCellOperations()
 	{
@@ -79,7 +79,7 @@ public:
         }
 	
 
-        ~GridCellOperations();
+        ~GridCellOperations()
 	{
 
 	}
@@ -121,7 +121,7 @@ public:
 		cell.log_odds_value_ += log_odds_p_occ_;
 	}
 
-        void setCellUnFree( GridCell &cell ) const
+        void setCellUnFree( GridCellType &cell ) const
 	{
 		cell.log_odds_value_ -= log_odds_p_free_;
 	}
