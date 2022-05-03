@@ -31,7 +31,7 @@ struct GridCell
 	GridCell() {  }
 	~GridCell() {  } 
 	
-	explicit GridCell( const float log_odds_value ) : log_odds_value_( log_odds_value )
+	explicit GridCell( const T log_odds_value ) : log_odds_value_( log_odds_value )
 	{
 
 	}
@@ -56,7 +56,9 @@ struct GridCell
 		log_odds_value_ = 0.0;
 	}
 
-	float log_odds_value_ = 0.0;
+	T log_odds_value_ = 0.0;
+	
+	int update_index_ = 0;
 };
 
 template<typename T, typename = typename std::enable_if<is_double_or_float<T>::value>::type>

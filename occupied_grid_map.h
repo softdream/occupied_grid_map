@@ -18,7 +18,8 @@ public:
 	using ConstSharedPtr = const std::shared_ptr<OccupiedGridMap<T>>;
 	using SharedPtr = std::shared_ptr<OccupiedGridMap<T>>;
 	using DataType = T;
-	
+	using CellType = GridCell<T>;	
+
 	OccupiedGridMap()
 	{
 
@@ -55,6 +56,9 @@ public:
 	template<typename = typename std::enable_if<std::is_same<DataType, sensor::ScanContainer::value_type>::value>::type>
 	void updateMapByScan( const sensor::ScanContainer &scan, const Eigen::Matrix<DataType, 3, 1> &robot_pose_in_world )
 	{
+		curr_mark_free_index_ = curr_update_index_ + 1;
+        	curr_mark_occ_index_ = curr_update_index_ + 2;
+
 		// 1. Transform robot Pose In world Coordinate to Map Coordinat
         	Eigen::Matrix<DataType, 3, 1> robot_pose_in_map = this->robotPoseWorld2Map( robot_pose_in_world );
 		// std::cout<<"Robot Pose In Map Coordinate: "<<std::endl;
@@ -87,6 +91,8 @@ public:
                         	this->inverseModel( begin_point_in_map_i, end_point_in_map_i );
                 	}
 		}
+
+		curr_update_index_ += 3;
 	}
 
         void clearGridMap()
@@ -168,25 +174,60 @@ private:
 
         void bresenhamCellFree( const int index )	
 	{
-		//CellType &cell = this->getCell( index );
-		this->setCellFree( index );
+		grid::GridCell<T> &cell = this->getCell( index );
+
+	        if( cell.update_index_ < curr_mark_free_index_ ){
+        	        this->setCellFree( index );
+
+                	cell.update_index_ = curr_mark_free_index_; // avoid reUpdate
+        	}
 	}
 
 	void bresenhamCellFree( const int x, const int y )
         {
-		this->setCellFree( x, y );
+		grid::GridCell<T>  &cell = this->getCell( x, y );
+
+                if( cell.update_index_ < curr_mark_free_index_ ){
+                        this->setCellFree( x, y );
+
+                        cell.update_index_ = curr_mark_free_index_; // avoid reUpdate
+                }
         }
 
         void bresenhamCellOccupied( const int index )
 	{
-		this->setCellOccupied( index );	
+		grid::GridCell<T>  &cell = this->getCell( index );
+
+	        if( cell.update_index_ < curr_mark_occ_index_ ){
+        	        if( cell.update_index_ == curr_mark_occ_index_ ){
+                	        this->setCellUnFree( index );
+                	}
+                	this->setCellOccupied( index );
+
+                	cell.update_index_ = curr_mark_occ_index_; // avoid reUpdate
+        	}
+
 	}
 
         void bresenhamCellOccupied( const int x, const int y )
 	{
-		this->setCellOccupied( x, y );
+		grid::GridCell<T> &cell = this->getCell( x, y );
+
+                if( cell.update_index_ < curr_mark_occ_index_ ){
+                        if( cell.update_index_ == curr_mark_occ_index_ ){
+                                this->setCellUnFree( x, y );
+                        }
+                        this->setCellOccupied( x, y );
+
+                        cell.update_index_ = curr_mark_occ_index_; // avoid reUpdate
+                }
+
 	}
 
+private:
+	int curr_update_index_ = 0;
+	int curr_mark_occ_index_ = -1;
+	int curr_mark_free_index_ = -1;
 };
 
 }
