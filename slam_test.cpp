@@ -1,22 +1,26 @@
 #include <iostream>
 #include "slam_process.h"
 
+#include "laserSimulation.h"
+
+#include <opencv2/opencv.hpp>
+
 void laserData2Container( const sensor::LaserScan &scan, sensor::ScanContainer &container )
 {
         size_t size = 1440;
 
-        float angle = -3.14159f;
+        float angle = -3.12413907051f;
         container.clear();
 
         for( int i = 0; i < size; i ++ ){
                 float dist = scan.ranges[ i ];
 
-                if( dist >= 0.0099999998f && dist <= 14.0000000000f ){
+                if( dist >= 0.0099999998f && dist <= 8.0000000000f ){
                         //dist *= scaleToMap;
                         container.addData( Eigen::Vector2f( cos(angle) * dist, sin(angle) * dist ) );
                 }
 
-                angle += 0.0043633231f;
+                angle += 0.00435422640294f;
         }
 
         std::cout<<"Scan Container Size: "<<container.getSize()<<std::endl;
@@ -25,8 +29,47 @@ void laserData2Container( const sensor::LaserScan &scan, sensor::ScanContainer &
 
 int main()
 {
-	std::cout<<" --------------- SCAN MATCH --------------"<<std::endl;
+	std::cout<<" --------------- SLAM TEST --------------"<<std::endl;
+	slam::SlamProcessor<float> slam;
 
+	// print the map information
+	slam.printMapInfo();
+	cv::Mat image = cv::Mat::zeros(slam.getSizeX(), slam.getSizeY(), CV_8UC3);
+	cv::imshow("map", image);
+
+	simulation::Simulation simulation;
+	simulation.openSimulationFile( "laser_data.txt" );
+
+	Eigen::Vector3f robot_pose( 0.0f, 0.0f, 0.0f );
+	
+	while( !simulation.endOfFile() ){
+		sensor::LaserScan scan;
+		sensor::ScanContainer scan_container;
+	
+		simulation.readAFrameData( scan );
+		laserData2Container( scan, scan_container );
+	
+		std::cout<<"frame count: "<<simulation.getFrameCount()<<std::endl;
+
+		if( simulation.getFrameCount() <= 10  ){
+			slam.processTheFirstScan( robot_pose, scan_container );
+			if( simulation.getFrameCount() == 10 ){
+				slam.displayMap( image );
+			}
+		}
+		else {
+			slam.update( robot_pose, scan_container );
+			robot_pose = slam.getLastScanMatchPose();
+			
+			std::cout<<"robot pose now: "<<std::endl;
+                        std::cout<<robot_pose<<std::endl;
+                        std::cout<<"------------------"<<std::endl;
+			slam.displayMap( image );
+		}
+		cv::waitKey(5);
+	}
+
+	simulation.closeSimulationFile();
 
 	return 0;
 }

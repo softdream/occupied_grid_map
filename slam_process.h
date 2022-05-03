@@ -1,6 +1,8 @@
 #ifndef __SLAM_PROCESS_H
 #define __SLAM_PROCESS_H
 
+#include <opencv2/opencv.hpp>
+
 #include "scan_match.h"
 
 namespace slam
@@ -55,6 +57,26 @@ public:
 			delete scan_match_;
 	}	
 	
+	void printMapInfo() const
+	{
+		return grid_map_->printMapInfo();
+	}
+
+	const int getSizeX() const
+	{
+		return grid_map_->getSizeX();
+	} 
+
+	const int getSizeY() const
+	{
+		return grid_map_->getSizeY();
+	}
+
+	const DataType getCellLength() const
+	{
+		return grid_map_->getCellLength();
+	}
+
 	// ------------ Set Parameters ---------- //
 	void setMinDistanceDiffForMapUpdate( const DataType min_dist )
 	{
@@ -65,7 +87,7 @@ public:
 	{
 		minAngleDiffForMapUpdate = min_angle;
 	}
-	
+
 	// ------------- Update --------------//
         void update( const Eigen::Matrix<DataType, 3, 1> &robot_pose_in_world,
                      const sensor::ScanContainer &scan,
@@ -88,7 +110,7 @@ public:
 		if( poseDiffLargerThan( last_map_update_pose_, new_pose_estimated ) ){
                 	is_key_frame_ = true;
 
-			grid_map_->updateByScan( scan, new_pose_estimated );
+			grid_map_->updateMapByScan( scan, new_pose_estimated );
                 	last_map_update_pose_ = new_pose_estimated;
         	}
 
@@ -97,7 +119,7 @@ public:
 	void processTheFirstScan( const Eigen::Matrix<DataType, 3, 1> &robot_pose_in_world,
 				  const sensor::ScanContainer &scan )
 	{
-		grid_map_->updateByScan( scan, robot_pose_in_world );
+		grid_map_->updateMapByScan( scan, robot_pose_in_world );
 	}
 	
 	const Eigen::Matrix<DataType, 3, 1>& getLastScanMatchPose() const
@@ -118,6 +140,24 @@ public:
 	bool isKeyFrame() const
 	{
 		return is_key_frame_;
+	}
+
+	void displayMap( cv::Mat &image )
+	{
+		int occupiedCount = 0;
+		for( int i = 0; i < grid_map_->getSizeX(); i ++ ){
+			for( int j = 0; j < grid_map_->getSizeY(); j ++ ){
+				if( grid_map_->isCellFree( i, j ) ){
+                                	cv::circle(image, cv::Point2d(i, j), 1, cv::Scalar(255, 255, 255), -1);
+				}
+				else if( grid_map_->isCellOccupied( i, j ) ){
+					occupiedCount ++;
+					cv::circle(image, cv::Point2d(i, j), 1, cv::Scalar(0, 0, 255), -1);
+				}
+			}
+		}
+
+		cv::imshow( "map", image );
 	}
 
 private:
@@ -154,9 +194,9 @@ private:
 	DataType minDistanceDiffForMapUpdate = 0.4;
 	DataType minAngleDiffForMapUpdate = 0.9;
 	
-	Eigen::Matrix<DataType, 3, 3> covarince_matrix_ = Eigen::Matrix<DataType, 3, 3>::Zero();
-	Eigen::Matrix<DataType, 3, 3> last_scan_match_pose_ = Eigen::Matrix<DataType, 3, 3>::Zero();
-	Eigen::Matrix<DataType, 3, 3> last_map_update_pose_ = Eigen::Matrix<DataType, 3, 3>::Zero;	
+	Eigen::Matrix<DataType, 3, 3> covarince_matrix_;
+	Eigen::Matrix<DataType, 3, 1> last_scan_match_pose_;
+	Eigen::Matrix<DataType, 3, 1> last_map_update_pose_;	
 
 	Eigen::Matrix<DataType, 3, 1> pose_diff_;
 	Eigen::Matrix<DataType, 3, 1> pose_trans_;

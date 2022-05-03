@@ -74,7 +74,7 @@ public:
 		return ( factor1 * ( factor0 * mP11 + factorInv0 * mP01 ) ) + ( factorInv1 * ( factor0 * mP10 + factorInv0 * mP00 ) );
 	}
 
-	const Eigen::Matrix<DataType, 3, 1> bilinearInterpolationWithDerivative( const OccupiedMap &occ_map, const Eigen::Matrix<DataType, 2, 1> &coords )
+	const Eigen::Matrix<DataType, 3, 1> bilinearInterpolationWithDerivative( OccupiedMap &occ_map, const Eigen::Matrix<DataType, 2, 1> &coords )
 	{
 		if( occ_map.isPointOutOfRange( coords ) ){
         	        return Eigen::Matrix<DataType, 3, 1>( 0.0f, 0.0f, 0.0f );
@@ -102,13 +102,13 @@ public:
 		DataType factorInv0 = 1.0f - factor0;
        	 	DataType factorInv1 = 1.0f - factor1;
 	
-		return Eigen::Matrix<DataType, 3, 3>( ( ( factor1 * ( factor0 * mP11 + factorInv0 * mP01 ) ) + ( factorInv1 * ( factor0 * mP10 + factorInv0 * mP00 ) ) ),
+		return Eigen::Matrix<DataType, 3, 1>( ( ( factor1 * ( factor0 * mP11 + factorInv0 * mP01 ) ) + ( factorInv1 * ( factor0 * mP10 + factorInv0 * mP00 ) ) ),
                                 			( factor1 * ( mP11 - mP01 ) + factorInv1 * ( mP10 - mP00 ) ),
                                 			( factor0 * ( mP11 - mP10 ) + factorInv0 * ( mP01 - mP00 ) ) );	
 	
 	}	
 
-	void getHessianDerivative( const OccupiedMap &occ_map,
+	void getHessianDerivative( OccupiedMap &occ_map,
 				   const Eigen::Matrix<DataType, 3, 1> &robot_pose_in_world,
 				   const sensor::ScanContainer &scan,
 				   Eigen::Matrix<DataType, 3, 3> &H, 
@@ -157,7 +157,7 @@ public:
         	H( 2, 1 ) = H( 1, 2 );
 	}
 
-	bool estimateTransformationOnce( const OccupiedMap &occ_map,
+	bool estimateTransformationOnce( OccupiedMap &occ_map,
 					 Eigen::Matrix<DataType, 3, 1> &estimate_in_world,
 					 const sensor::ScanContainer &scan )
 	{
@@ -187,11 +187,11 @@ public:
 		
 		estimate_in_map += delta;
 		
-		estimate_in_world = occ_map.occuMap.robotPoseMap2World( estimate_in_map );
+		estimate_in_world = occ_map.robotPoseMap2World( estimate_in_map );
 
 	}
 
-	Eigen::Matrix<DataType, 3, 1> scanToMap( const OccupiedMap &occ_map,
+	Eigen::Matrix<DataType, 3, 1> scanToMap( OccupiedMap &occ_map,
                         			 const Eigen::Matrix<DataType, 3, 1> &begin_estimated_pose_in_world,
                         			 const sensor::ScanContainer &scan,
                         			 Eigen::Matrix<DataType, 3, 3> &covarince_matrix,
