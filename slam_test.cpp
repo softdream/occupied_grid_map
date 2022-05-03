@@ -5,6 +5,8 @@
 
 #include <opencv2/opencv.hpp>
 
+#include <chrono>
+
 void laserData2Container( const sensor::LaserScan &scan, sensor::ScanContainer &container )
 {
         size_t size = 1440;
@@ -38,7 +40,7 @@ int main()
 	cv::imshow("map", image);
 
 	simulation::Simulation simulation;
-	simulation.openSimulationFile( "laser_data.txt" );
+	simulation.openSimulationFile( "../../test_data/laser_data.txt" );
 
 	Eigen::Vector3f robot_pose( 0.0f, 0.0f, 0.0f );
 	
@@ -58,8 +60,12 @@ int main()
 			}
 		}
 		else {
+			auto beforeTime = std::chrono::steady_clock::now();
 			slam.update( robot_pose, scan_container );
 			robot_pose = slam.getLastScanMatchPose();
+			auto afterTime = std::chrono::steady_clock::now();
+			double duration_millsecond = std::chrono::duration<double, std::milli>(afterTime - beforeTime).count();
+			std::cout<<"duration : " << duration_millsecond << "ms" << std::endl;
 			
 			std::cout<<"robot pose now: "<<std::endl;
                         std::cout<<robot_pose<<std::endl;
